@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "/home/lisandro/Documentos/IPS/Taller IV/Workspace/simpleftp/sftp.h"
+#include "./sftp.h"
 
 #include <string.h>
 #include <stdbool.h>
