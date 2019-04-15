@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "./sftp.h"
+#include "sftp.h"
 
 #include <string.h>
 #include <stdbool.h>
@@ -148,8 +148,11 @@ bool check_credentials(char *user, char *pass) {
     found = busqEnArchivo(cred, file);
     
     // close file and release any pointes if necessary
+    
     fclose(file);
+    
     // return search status
+    
     return found;
 }
 
