@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include "/home/lisandro/Documentos/IPS/Taller IV/Workspace/simpleftp/sftp.h"
 
 #include <string.h>
 #include <stdbool.h>
@@ -22,6 +23,7 @@
 #define MSG_299 "299 File %s size %ld bytes\r\n"
 #define MSG_226 "226 Transfer complete\r\n"
 
+#define LINEMAX 50
 /**
  * function: receive the commands from the client
  * sd: socket descriptor
@@ -120,19 +122,35 @@ void retr(int sd, char *file_path) {
  **/
 bool check_credentials(char *user, char *pass) {
     FILE *file;
-    char *path = "./ftpusers", *line = NULL, cred[100];
+    char *path = "./ftpusers", *line = NULL, cred[100]; //formato del archivo ftpusers: user pass separado por un espacio en blanco, una credencial por linea.
     size_t len = 0;
     bool found = false;
-
+    int i = 0;
+    file = fopen (path, "r");
     // make the credential string
+
+    char *cred = (char *)malloc(sizeof(user) + sizeof(pass) + 1);
+    strcpy(cred, user);
+    strcat(cred, " ");
+    strcat(cred, pass);
+    strcat(cred, "\n");
+
 
     // check if ftpusers file it's present
 
+    if (file<0){
+        fclose(file);
+        return false;
+    }
+
     // search for credential string
 
+    found = busqEnArchivo(cred, file);
+    
     // close file and release any pointes if necessary
-
+    fclose(file);
     // return search status
+    return found;
 }
 
 /**
