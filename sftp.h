@@ -15,14 +15,16 @@ bool busqEnArchivo(char *credentials, FILE *file) {
     fgets(line, LINEMAX, file);
 
     while (!feof(file)){
-        
+
         i++;
-        if (!strcmp(credentials, line))
+        if (!strcmp(credentials, line)){
+            free (line);
             return true;
+        }
 
         fgets(line, LINEMAX, file);
     }
-    
+
     free (line);
     return false;
 }

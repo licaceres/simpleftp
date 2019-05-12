@@ -26,6 +26,7 @@ bool recv_msg(int sd, int code, char *text) {
 
     // receive the answer
 
+    recv_s = recv(sd, buffer, BUFSIZE, 0);
 
     // error checking
     if (recv_s < 0) warn("error receiving data");
@@ -57,6 +58,9 @@ void send_msg(int sd, char *operation, char *param) {
 
     // send command and check for errors
 
+    if(send(sd, buffer, (sizeof(char)*BUFSIZE), 0) == -1)
+        printf("Error when sending the command.");
+
 }
 
 /**
@@ -84,24 +88,28 @@ void authenticate(int sd) {
     input = read_input();
 
     // send the command to the server
-    
+    send_msg(sd, "USER", input);
+
     // relese memory
     free(input);
 
     // wait to receive password requirement and check for errors
-
+    code = 331;
+    if(!recv_msg(sd, code, desc)) exit(1);
 
     // ask for password
     printf("passwd: ");
     input = read_input();
 
     // send the command to the server
-
+    send_msg(sd, "PASS", input);
 
     // release memory
     free(input);
 
     // wait for answer and process it and check for errors
+    code = 230;
+    if(!recv_msg(sd, code, desc)) exit(1);
 
 }
 
@@ -116,8 +124,10 @@ void get(int sd, char *file_name) {
     FILE *file;
 
     // send the RETR command to the server
+    send_msg(sd, "RETR", file_name);
 
     // check for the response
+    if (recv_msg(sd, 550, NULL)) return;
 
     // parsing the file size from the answer received
     // "File %s size %ld bytes"
@@ -127,14 +137,20 @@ void get(int sd, char *file_name) {
     file = fopen(file_name, "w");
 
     //receive the file
-
-
+    while (1){
+        recv_s = read(sd, desc, r_size);
+        if (recv_s > 0) fwrite(desc, 1, recv_s, file);
+        if (recv_s < r_size) break;
+    }
 
     // close the file
     fclose(file);
 
     // receive the OK from the server
-
+    if(recv_msg(sd, 226, NULL))
+        printf("%s", "226 Transfer Complete.\n");
+    else
+        printf("Error.");
 }
 
 /**
@@ -143,9 +159,9 @@ void get(int sd, char *file_name) {
  **/
 void quit(int sd) {
     // send command QUIT to the client
-
+    send_msg(sd, "QUIT", NULL);
     // receive the answer from the server
-
+    recv_msg(sd, 221, NULL);
 }
 
 /**
@@ -188,16 +204,33 @@ int main (int argc, char *argv[]) {
     struct sockaddr_in addr;
 
     // arguments checking
+    if(argc != 3){
+        printf("Usage: ./clFtp <IP> <PORT>");
+        exit(1);
+    }
 
     // create socket and check for errors
-    
-    // set socket data    
-
+    if ((sd=socket(AF_INET, SOCK_STREAM, 0)) == -1){
+        perror("socket");
+        exit(1);
+    }
+    // set socket data
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    addr.sin_port = htons(*argv[2]);
+    memset(&addr.sin_zero, '\0', 8);
     // connect and check for errors
-
+    if(connect(sd, (struct sockaddr *)&addr, sizeof(addr)) == -1) exit (1);
     // if receive hello proceed with authenticate and operate if not warning
+    if(!recv_msg(sd, 220, NULL))
+        warn("Error reciving response...");
+    else{
+        authenticate(sd);
+        operate(sd);
+    }
 
     // close socket
+    close(sd);
 
     return 0;
 }
